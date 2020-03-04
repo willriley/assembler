@@ -4,36 +4,92 @@
 
 #ifndef ASSEMBLER_ASSEMBLER_HH
 #define ASSEMBLER_ASSEMBLER_HH
-struct itype {
-    unsigned int opc : 7;
-    unsigned int rd  : 5;
-    unsigned int f3  : 3;
-    unsigned int rs1 : 5;
-    unsigned int imm : 12;
-};
 
-struct rtype {
-    unsigned int opc : 7;
-    unsigned int rd  : 5;
-    unsigned int f3  : 3;
-    unsigned int rs1 : 5;
-    unsigned int rs2 : 5;
-    unsigned int f7  : 7;
-};
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <functional>
+#include <utility>
 
-struct btype {
-    unsigned int opc : 7;
-    unsigned int im2 : 5; // imm[4:1], imm[11]
-    unsigned int f3  : 3;
-    unsigned int rs1 : 5;
-    unsigned int rs2 : 5;
-    unsigned int im1 : 7; // imm[12], imm[10:5]
-};
+namespace assembler {
 
-// 1111 1110 0000 0000 0000 1011 1110 0011
+    const int I_OPCODE = 0b0010011;
+    const int R_OPCODE = 0b0110011;
+    const int B_OPCODE = 0b1100011;
 
-const int I_OPCODE = 0b0010011;
-const int R_OPCODE = 0b0110011;
-const int B_OPCODE = 0b1100011;
+    const std::unordered_map<std::string, unsigned> aliases = {{"zero", 0},
+                                                               {"ra",   1},
+                                                               {"sp",   2},
+                                                               {"gp",   3},
+                                                               {"tp",   4},
+                                                               {"t0",   5},
+                                                               {"t1",   6},
+                                                               {"t2",   7},
+                                                               {"t3",   28},
+                                                               {"t4",   29},
+                                                               {"t5",   30},
+                                                               {"t6",   31},
+                                                               {"fp",   8},
+                                                               {"s0",   8},
+                                                               {"s1",   9},
+                                                               {"s2",   18},
+                                                               {"s3",   19},
+                                                               {"s4",   20},
+                                                               {"s5",   21},
+                                                               {"s6",   22},
+                                                               {"s7",   23},
+                                                               {"s8",   24},
+                                                               {"s9",   25},
+                                                               {"s10",  26},
+                                                               {"s11",  27},
+                                                               {"a0",   10},
+                                                               {"a1",   11},
+                                                               {"a2",   12},
+                                                               {"a3",   13},
+                                                               {"a4",   14},
+                                                               {"a5",   15},
+                                                               {"a6",   16},
+                                                               {"a7",   17}};
 
+    struct itype {
+        unsigned int opc : 7;
+        unsigned int rd  : 5;
+        unsigned int f3  : 3;
+        unsigned int rs1 : 5;
+        int imm : 12; // signed
+    };
+
+    struct rtype {
+        unsigned int opc : 7;
+        unsigned int rd  : 5;
+        unsigned int f3  : 3;
+        unsigned int rs1 : 5;
+        unsigned int rs2 : 5;
+        unsigned int f7  : 7;
+    };
+
+    struct btype {
+        unsigned int opc : 7;
+        unsigned int im2 : 5; // imm[4:1], imm[11]
+        unsigned int f3  : 3;
+        unsigned int rs1 : 5;
+        unsigned int rs2 : 5;
+        unsigned int im1 : 7; // imm[12], imm[10:5]
+    };
+
+    unsigned get_reg(const std::string &s);
+
+    using parser = std::function<void(std::vector<std::string> &)>;
+
+    void parse_itype(std::vector<std::string> &args);
+
+    // map instruction to pair of <f3 code, handler function>
+    const std::unordered_map<std::string, std::pair<unsigned int, parser>> handlers = {
+            {"addi", std::make_pair<unsigned int, parser>(0, parse_itype)},
+            {"slli", std::make_pair<unsigned int, parser>(1, parse_itype)},
+            {"srli", std::make_pair<unsigned int, parser>(5, parse_itype)},
+            {"ori", std::make_pair<unsigned int, parser>(6, parse_itype)},
+            {"andi", std::make_pair<unsigned int, parser>(7, parse_itype)}};
+
+}
 #endif //ASSEMBLER_ASSEMBLER_HH
