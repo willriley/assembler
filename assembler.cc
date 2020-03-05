@@ -9,6 +9,7 @@
 namespace assembler {
     unsigned get_reg(const std::string &s) {
         if (s[0] == 'x') {
+            printf("reg %d\n", std::atoi(&s[1]));
             return (unsigned) std::atoi(&s[1]);
         }
         try {
@@ -36,6 +37,19 @@ namespace assembler {
         printf("0x%08x\n", *(uint32_t *) &instr);
     }
 
+    // add, xor, mul
+    // add ra, x0, x0
+    void parse_rtype(std::vector<std::string>& args) {
+        rtype instr = {.opc = R_OPCODE,
+                .rd = get_reg(args[1]),
+                .rs1 = get_reg(args[2]),
+                .rs2 = get_reg(args[3]),
+                .f3 = handlers.at(args[0]).first,
+                .f7 = static_cast<unsigned int>(args[0] == "mul" ? 1 : 0)};
+
+        printf("0x%08x\n", *(uint32_t *) &instr);
+    }
+
     void parse(std::vector<std::string>& args) {
         // call handler for function
         parser p = handlers.at(args[0]).second;
@@ -54,13 +68,25 @@ int main() {
     std::vector<std::string> args = {"addi", "a0", "x0", "5"};
     parse(args);
 
-    // ori a0, x0, 100
-    itype j = {.imm = 100, .rs1 = 0, .f3 = 6, .rd = 10, .opc = I_OPCODE};
+    // ori a0, x0, 2033
+    itype j = {.imm = 2033, .rs1 = 0, .f3 = 6, .rd = 10, .opc = I_OPCODE};
     printf("0x%08x\n", *(uint32_t *) &j);
 
-    args = {"ori", "a0", "x0", "100"};
+    args = {"ori", "a0", "x0", "2033"};
     parse(args);
-
+    
+    /**
+     * rtype tests
+     * mul x5, x25, x17
+     * add x7, x4, x29
+     * xor x9, x13, x30
+     */
+    args = {"mul", "x5", "x25", "x17"};
+    parse(args);
+    args = {"add", "x7", "x4", "x29"};
+    parse(args);
+    args = {"xor", "x9", "x13", "x30"};
+    parse(args);
 
     // add x5, x28, x11
     rtype k = {.f7 = 0, .rs2 = 11, .rs1 = 28, .f3 = 0, .rd = 5, .opc = R_OPCODE};

@@ -17,6 +17,55 @@ namespace assembler {
     const int R_OPCODE = 0b0110011;
     const int B_OPCODE = 0b1100011;
 
+    struct itype {
+        unsigned int opc : 7;
+        unsigned int rd  : 5;
+        unsigned int f3  : 3;
+        unsigned int rs1 : 5;
+        int imm : 12; // signed
+    };
+
+    struct rtype {
+        unsigned int opc : 7;
+        unsigned int rd  : 5;
+        unsigned int f3  : 3;
+        unsigned int rs1 : 5;
+        unsigned int rs2 : 5;
+        unsigned int f7  : 7;
+    };
+
+    struct btype {
+        unsigned int opc : 7;
+        unsigned int im2 : 5; // imm[4:1], imm[11]
+        unsigned int f3  : 3;
+        unsigned int rs1 : 5;
+        unsigned int rs2 : 5;
+        unsigned int im1 : 7; // imm[12], imm[10:5]
+    };
+
+    // convert reg name to value (e.g. x28 to 28, ra to 2)
+    unsigned get_reg(const std::string &s);
+
+    // parser function type alias
+    // takes in a vector of strings and returns nothing (void)
+    using parser = std::function<void(std::vector<std::string> &)>;
+
+    void parse_itype(std::vector<std::string> &args);
+    void parse_rtype(std::vector<std::string> &args);
+    void parse_btype(std::vector<std::string> &args);
+
+    // map instruction to pair of <f3 code, handler function>
+    const std::unordered_map<std::string, std::pair<unsigned, parser>> handlers = {
+            {"addi", std::make_pair<unsigned, parser>(0, parse_itype)},
+            {"slli", std::make_pair<unsigned, parser>(1, parse_itype)},
+            {"srli", std::make_pair<unsigned, parser>(5, parse_itype)},
+            {"ori", std::make_pair<unsigned, parser>(6, parse_itype)},
+            {"andi", std::make_pair<unsigned, parser>(7, parse_itype)},
+            {"add", std::make_pair<unsigned, parser>(0, parse_rtype)},
+            {"xor", std::make_pair<unsigned, parser>(4, parse_rtype)},
+            {"mul", std::make_pair<unsigned, parser>(0, parse_rtype)}};
+
+    // map of all register aliases
     const std::unordered_map<std::string, unsigned> aliases = {{"zero", 0},
                                                                {"ra",   1},
                                                                {"sp",   2},
@@ -50,46 +99,5 @@ namespace assembler {
                                                                {"a5",   15},
                                                                {"a6",   16},
                                                                {"a7",   17}};
-
-    struct itype {
-        unsigned int opc : 7;
-        unsigned int rd  : 5;
-        unsigned int f3  : 3;
-        unsigned int rs1 : 5;
-        int imm : 12; // signed
-    };
-
-    struct rtype {
-        unsigned int opc : 7;
-        unsigned int rd  : 5;
-        unsigned int f3  : 3;
-        unsigned int rs1 : 5;
-        unsigned int rs2 : 5;
-        unsigned int f7  : 7;
-    };
-
-    struct btype {
-        unsigned int opc : 7;
-        unsigned int im2 : 5; // imm[4:1], imm[11]
-        unsigned int f3  : 3;
-        unsigned int rs1 : 5;
-        unsigned int rs2 : 5;
-        unsigned int im1 : 7; // imm[12], imm[10:5]
-    };
-
-    unsigned get_reg(const std::string &s);
-
-    using parser = std::function<void(std::vector<std::string> &)>;
-
-    void parse_itype(std::vector<std::string> &args);
-
-    // map instruction to pair of <f3 code, handler function>
-    const std::unordered_map<std::string, std::pair<unsigned int, parser>> handlers = {
-            {"addi", std::make_pair<unsigned int, parser>(0, parse_itype)},
-            {"slli", std::make_pair<unsigned int, parser>(1, parse_itype)},
-            {"srli", std::make_pair<unsigned int, parser>(5, parse_itype)},
-            {"ori", std::make_pair<unsigned int, parser>(6, parse_itype)},
-            {"andi", std::make_pair<unsigned int, parser>(7, parse_itype)}};
-
 }
 #endif //ASSEMBLER_ASSEMBLER_HH
