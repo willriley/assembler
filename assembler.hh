@@ -22,7 +22,7 @@ namespace assembler {
         unsigned int rd  : 5;
         unsigned int f3  : 3;
         unsigned int rs1 : 5;
-        int imm : 12; // signed
+        int imm : 12; // signed immediate
     };
 
     struct rtype {
@@ -55,7 +55,7 @@ namespace assembler {
     void parse_btype(std::vector<std::string> &args);
 
     // map instruction to pair of <f3 code, handler function>
-    const std::unordered_map<std::string, std::pair<unsigned, parser>> handlers = {
+    const std::unordered_map<std::string, std::pair<unsigned, parser>> cmds = {
             {"addi", std::make_pair<unsigned, parser>(0, parse_itype)},
             {"slli", std::make_pair<unsigned, parser>(1, parse_itype)},
             {"srli", std::make_pair<unsigned, parser>(5, parse_itype)},

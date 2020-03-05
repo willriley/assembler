@@ -4,17 +4,35 @@
 #include "assembler.hh"
 #include <cstdio>
 #include <unitypes.h>
-#include <vector>
+#include <fstream>
+#include <sstream>
 
 namespace assembler {
+
+    void trim_space(std::string &in) {
+        auto begin = in.find_first_not_of(' ');
+        if (begin == std::string::npos) {
+            in = "";
+            return;
+        }
+
+        in = in.substr(begin);
+        auto end = in.find_first_of(' ');
+        if (end == std::string::npos) {
+            return;
+        }
+
+        in = in.substr(0, end);
+        return;
+    }
+
     unsigned get_reg(const std::string &s) {
         if (s[0] == 'x') {
-            printf("reg %d\n", std::atoi(&s[1]));
             return (unsigned) std::atoi(&s[1]);
         }
         try {
             return aliases.at(s);
-        } catch (std::exception& ex) {
+        } catch (const std::exception& ex) {
             throw std::runtime_error("invalid register specified");
         }
     }
@@ -32,7 +50,7 @@ namespace assembler {
         itype instr = {.opc = I_OPCODE,
                        .rd = get_reg(args[1]),
                        .rs1 = get_reg(args[2]),
-                       .f3 = handlers.at(args[0]).first,
+                       .f3 = cmds.at(args[0]).first,
                        .imm = imm};
         printf("0x%08x\n", *(uint32_t *) &instr);
     }
@@ -44,7 +62,7 @@ namespace assembler {
                        .rd = get_reg(args[1]),
                        .rs1 = get_reg(args[2]),
                        .rs2 = get_reg(args[3]),
-                       .f3 = handlers.at(args[0]).first,
+                       .f3 = cmds.at(args[0]).first,
                        .f7 = static_cast<unsigned int>(args[0] == "mul" ? 1 : 0)};
 
         printf("0x%08x\n", *(uint32_t *) &instr);
@@ -54,12 +72,14 @@ namespace assembler {
     // beq x0, x0, 0
     void parse_btype(std::vector<std::string>& args) {
         int offset = std::atoi(args[3].c_str());
+        if (offset > 4095 || offset < -4096) {
+            throw std::runtime_error("branch offsets should be in range [-4096, 4096)");
+        }
 
-        printf("offset %d\n", offset);
         btype instr = {.opc = B_OPCODE,
                        .rs1 = get_reg(args[1]),
                        .rs2 = get_reg(args[2]),
-                       .f3  = handlers.at(args[0]).first};
+                       .f3  = cmds.at(args[0]).first};
 
         // set im1 based on offset[12] and offset[10:5]
         instr.im1 = (offset & 0x000007e0) >> 5;
@@ -77,15 +97,66 @@ namespace assembler {
 
     void parse(std::vector<std::string>& args) {
         // call handler for function
-        parser p = handlers.at(args[0]).second;
+        parser p = cmds.at(args[0]).second;
         p(args);
+    }
+
+    void parse_file(const std::string& name) {
+        std::ifstream file(name);
+        std::string line;
+
+        while (std::getline(file, line)) {
+
+            // skip past label
+            auto pos = line.find(':');
+            if (pos != std::string::npos) {
+                line = line.substr(pos+1);
+                pos = line.find_first_not_of(' ');
+                line = pos != std::string::npos ? line.substr(pos) : "";
+            }
+
+            // skip empty lines, or lines that are just labels (e.g. "label:")
+            if (line.empty()) {
+                continue;
+            }
+
+            std::vector<std::string> instr;
+            std::istringstream ss(line);
+            std::string token;
+
+            std::getline(ss, token, ' ');
+            instr.push_back(token);
+
+            for (int i=0; i<3; i++) {
+                if (!std::getline(ss, token, ',')) {
+                    throw std::runtime_error("command doesn't have 3 args");
+                }
+                trim_space(token);
+                instr.push_back(token);
+            }
+
+            parse(instr);
+
+//            for (const auto &tok : instr) {
+//                printf("%s ", tok.c_str());
+//            }
+//            printf("\n");
+//
+        }
     }
 }
 
 
-int main() {
-    // addi a0, x0, 5
+int main(int argc, char *argv[]) {
     using namespace assembler;
+
+    if (argc > 1) {
+        printf("argv[1] %s\n", argv[1]);
+        parse_file(std::string(argv[1]));
+        exit(0);
+    }
+
+    // addi a0, x0, 5
     itype i = {.imm = 5, .rs1 = 0, .f3 = 0, .rd = 10, .opc = I_OPCODE};
     printf("0x%08x\n", *(uint32_t *) &i);
 
@@ -123,14 +194,6 @@ int main() {
 
     args = {"beq", "x0", "x0", "-4"};
     parse(args);
-
-    // add x5, x28, x11
-//    rtype k = {.f7 = 0, .rs2 = 11, .rs1 = 28, .f3 = 0, .rd = 5, .opc = R_OPCODE};
-//    printf("0x%08x\n", *(uint32_t *) &k);
-
-    // here: beq x0, x0, here
-//    btype b = {.im1 = 0, .im2 = 0, .f3 = 0, .rs1 = 0, .rs2 = 0, .opc = B_OPCODE};
-//    printf("0x%08x\n", *(uint32_t *) &b);
 
     return 0;
 }
