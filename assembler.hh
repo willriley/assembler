@@ -63,7 +63,9 @@ namespace assembler {
             {"andi", std::make_pair<unsigned, parser>(7, parse_itype)},
             {"add", std::make_pair<unsigned, parser>(0, parse_rtype)},
             {"xor", std::make_pair<unsigned, parser>(4, parse_rtype)},
-            {"mul", std::make_pair<unsigned, parser>(0, parse_rtype)}};
+            {"mul", std::make_pair<unsigned, parser>(0, parse_rtype)},
+            {"beq", std::make_pair<unsigned, parser>(0, parse_btype)},
+            {"bne", std::make_pair<unsigned, parser>(1, parse_btype)},};
 
     // map of all register aliases
     const std::unordered_map<std::string, unsigned> aliases = {{"zero", 0},
