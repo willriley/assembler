@@ -17,7 +17,7 @@ namespace assembler {
     const int R_OPCODE = 0b0110011;
     const int B_OPCODE = 0b1100011;
 
-    struct itype {
+    struct __attribute__((packed)) itype {
         unsigned int opc : 7;
         unsigned int rd  : 5;
         unsigned int f3  : 3;
@@ -25,7 +25,7 @@ namespace assembler {
         int imm : 12; // signed immediate
     };
 
-    struct rtype {
+    struct __attribute__((packed)) rtype {
         unsigned int opc : 7;
         unsigned int rd  : 5;
         unsigned int f3  : 3;
@@ -34,7 +34,7 @@ namespace assembler {
         unsigned int f7  : 7;
     };
 
-    struct btype {
+    struct __attribute__((packed)) btype {
         unsigned int opc : 7;
         unsigned int im2 : 5; // imm[4:1], imm[11]
         unsigned int f3  : 3;
@@ -64,6 +64,8 @@ namespace assembler {
             {"add", std::make_pair<unsigned, parser>(0, parse_rtype)},
             {"xor", std::make_pair<unsigned, parser>(4, parse_rtype)},
             {"mul", std::make_pair<unsigned, parser>(0, parse_rtype)},
+            {"sll", std::make_pair<unsigned, parser>(1, parse_rtype)},
+            {"srl", std::make_pair<unsigned, parser>(5, parse_rtype)},
             {"beq", std::make_pair<unsigned, parser>(0, parse_btype)},
             {"bne", std::make_pair<unsigned, parser>(1, parse_btype)},};
 

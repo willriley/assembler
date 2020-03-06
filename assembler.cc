@@ -23,7 +23,6 @@ namespace assembler {
         }
 
         in = in.substr(0, end);
-        return;
     }
 
     unsigned get_reg(const std::string &s) {
@@ -55,7 +54,7 @@ namespace assembler {
         printf("0x%08x\n", *(uint32_t *) &instr);
     }
 
-    // add, xor, mul
+    // add, xor, mul, sll, srl
     // add ra, x0, x0
     void parse_rtype(std::vector<std::string>& args) {
         rtype instr = {.opc = R_OPCODE,
@@ -96,9 +95,12 @@ namespace assembler {
     }
 
     void parse(std::vector<std::string>& args) {
-        // call handler for function
-        parser p = cmds.at(args[0]).second;
-        p(args);
+        try {
+            parser p = cmds.at(args[0]).second;
+            p(args);
+        } catch (const std::exception& e) {
+            throw std::runtime_error("unsupported instruction " + args[0]);
+        }
     }
 
     void parse_file(const std::string& name) {
@@ -106,7 +108,6 @@ namespace assembler {
         std::string line;
 
         while (std::getline(file, line)) {
-
             // skip past label
             auto pos = line.find(':');
             if (pos != std::string::npos) {
@@ -115,8 +116,8 @@ namespace assembler {
                 line = pos != std::string::npos ? line.substr(pos) : "";
             }
 
-            // skip empty lines, or lines that are just labels (e.g. "label:")
-            if (line.empty()) {
+            // skip empty lines, labels (e.g. "label:"), and comments (e.g. "# comment")
+            if (line.empty() || line[0] == '#') {
                 continue;
             }
 
@@ -136,12 +137,6 @@ namespace assembler {
             }
 
             parse(instr);
-
-//            for (const auto &tok : instr) {
-//                printf("%s ", tok.c_str());
-//            }
-//            printf("\n");
-//
         }
     }
 }
@@ -149,51 +144,11 @@ namespace assembler {
 
 int main(int argc, char *argv[]) {
     using namespace assembler;
-
-    if (argc > 1) {
-        printf("argv[1] %s\n", argv[1]);
-        parse_file(std::string(argv[1]));
-        exit(0);
+    if (argc <= 1) {
+        printf("please specify an input file\n");
+        return 0;
     }
 
-    // addi a0, x0, 5
-    itype i = {.imm = 5, .rs1 = 0, .f3 = 0, .rd = 10, .opc = I_OPCODE};
-    printf("0x%08x\n", *(uint32_t *) &i);
-
-    // addi a0, x0, 5
-    std::vector<std::string> args = {"addi", "a0", "x0", "5"};
-    parse(args);
-
-    // ori a0, x0, 2033
-    itype j = {.imm = 2033, .rs1 = 0, .f3 = 6, .rd = 10, .opc = I_OPCODE};
-    printf("0x%08x\n", *(uint32_t *) &j);
-
-    args = {"ori", "a0", "x0", "2033"};
-    parse(args);
-
-    /**
-     * rtype tests
-     * mul x5, x25, x17
-     * add x7, x4, x29
-     * xor x9, x13, x30
-     */
-    args = {"mul", "x5", "x25", "x17"};
-    parse(args);
-    args = {"add", "x7", "x4", "x29"};
-    parse(args);
-    args = {"xor", "x9", "x13", "x30"};
-    parse(args);
-
-    /**
-     * btype tests
-     * beq x0 x0 8
-     * beq x0 x0 -4
-     */
-    args = {"beq", "x0", "x0", "172"};
-    parse(args);
-
-    args = {"beq", "x0", "x0", "-4"};
-    parse(args);
-
+    parse_file(std::string(argv[1]));
     return 0;
 }
